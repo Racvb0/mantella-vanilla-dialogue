@@ -32,6 +32,8 @@ include(lib/commonlibsse-ng/cmake/CommonLibSSE.cmake)
 # ---- Plugin ----
 add_commonlibsse_plugin(${PROJECT_NAME} SOURCES plugin.cpp) # <--- specifies plugin.cpp
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23) # <--- use C++23 standard
+# windows.h define macros min/max que rompen std::min/std::max (error C2589).
+target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 target_precompile_headers(${PROJECT_NAME} PRIVATE PCH.h) # <--- PCH.h is required!
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_FILENAME "MantellaDialogue") # <--- the plugin name
 
