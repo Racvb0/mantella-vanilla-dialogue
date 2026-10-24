@@ -1,0 +1,71 @@
+name: Compilar MantellaDialogue.dll
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Instalar Ninja
+        run: choco install ninja -y
+
+      - name: Caché binaria de vcpkg
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\vcpkg-binary-cache
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-
+
+      - name: Configurar CMake
+        env:
+          VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
+        shell: pwsh
+        run: |
+          # El bundle precompilado del SDK se enlazó contra otro fmt y produce
+          # LNK2001. Sin GITHUB_ACTIONS en el entorno, Prebuilt.cmake cae a fuente.
+          Remove-Item Env:GITHUB_ACTIONS -ErrorAction SilentlyContinue
+          $vcpkg = if ($env:VCPKG_ROOT) { $env:VCPKG_ROOT } else { $env:VCPKG_INSTALLATION_ROOT }
+          Write-Host "Usando vcpkg en: $vcpkg"
+          cmake -B build -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE="$vcpkg/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static-md `
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL `
+            -DBUILD_TESTS=OFF
+
+      - name: Compilar
+        env:
+          VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Localizar DLL
+        id: find_dll
+        shell: pwsh
+        run: |
+          $dll = Get-ChildItem -Path build -Recurse -Filter "MantellaDialogue.dll" | Select-Object -First 1
+          if (-not $dll) {
+            Write-Error "No se encontró MantellaDialogue.dll en build/"
+            exit 1
+          }
+          Write-Host "DLL: $($dll.FullName)"
+          Write-Host "path=$($dll.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Subir artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: MantellaDialogue.dll
+          path: ${{ steps.find_dll.outputs.path }}
