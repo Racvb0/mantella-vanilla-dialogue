@@ -3,6 +3,14 @@
     "name": "mantella-dialogue",
     "version-string": "1.0.0",
     "dependencies": [
-        "commonlibsse-ng"
+        "directxmath",
+        "directxtk",
+        "fmt",
+        "nlohmann-json",
+        "rapidcsv",
+        "simpleini",
+        "spdlog",
+        "toml11",
+        "xbyak"
     ]
-} 
+}
