@@ -34,6 +34,9 @@ jobs:
           VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
         shell: pwsh
         run: |
+          # actions/cache no crea la carpeta si no hay entrada previa y vcpkg
+          # exige que VCPKG_DEFAULT_BINARY_CACHE sea un directorio existente.
+          New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\vcpkg-binary-cache" | Out-Null
           # El bundle precompilado del SDK se enlazó contra otro fmt y produce
           # LNK2001. Sin GITHUB_ACTIONS en el entorno, Prebuilt.cmake cae a fuente.
           Remove-Item Env:GITHUB_ACTIONS -ErrorAction SilentlyContinue
